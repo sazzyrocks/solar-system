@@ -3,9 +3,18 @@
  * Responsibility: Building and animating the Sun, all 8 planets, orbit paths,
  * axial tilts, and ring systems. Also exposes hover-highlight API for
  * interactions.js to call (scale, emissive, orbit line — all GSAP-animated).
+ *
+ * Phase D addition: Procedural canvas textures (diffuse, bump, specular) are
+ * generated at startup via textureGen.js — no external image downloads.
  */
 
 import * as THREE from 'three';
+import {
+  generatePlanetTexture,
+  generateBumpMap,
+  generateSpecularMap,
+  generateRingTexture,
+} from './textureGen.js';
 
 const gsap = window.gsap;
 
@@ -37,13 +46,60 @@ function createOrbitPath(radius) {
  * @param {object} sunData
  * @returns {THREE.Group}
  */
+/**
+ * Build a procedural Sun surface texture showing granulation / convection cells.
+ * Painted into a 256×256 canvas and wrapped onto the sphere.
+ */
+function createSunTexture(baseColor) {
+  const W = 256, H = 256;
+  let canvas;
+  try { canvas = new OffscreenCanvas(W, H); }
+  catch (_) { canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H; }
+  const ctx = canvas.getContext('2d');
+
+  // Use a simple noise approximation for solar granulation
+  const img = ctx.createImageData(W, H);
+  const d   = img.data;
+  const base = new THREE.Color(baseColor);
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const nx = x / W * 7;
+      const ny = y / H * 7;
+      // Multi-octave noise
+      let n = 0, amp = 1, freq = 1, max = 0;
+      for (let o = 0; o < 5; o++) {
+        const hv = Math.sin(nx * freq * 127.1 + ny * freq * 311.7) * 43758.5;
+        n   += (hv - Math.floor(hv)) * amp;
+        max += amp; amp *= 0.55; freq *= 2.1;
+      }
+      n /= max;
+
+      // Map to yellow → deep orange palette
+      const r = Math.round(Math.min(255, base.r * 255 * (0.75 + n * 0.5)));
+      const g = Math.round(Math.min(255, base.g * 255 * (0.55 + n * 0.5)));
+      const b = Math.round(Math.min(255, base.b * 255 * (0.10 + n * 0.3)));
+      const i = (y * W + x) * 4;
+      d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function createSun(sunData) {
   const group = new THREE.Group();
   group.name  = 'sun';
 
   // Core — MeshBasicMaterial so it's always fully bright (bloom candidate)
+  // Now uses a procedural granulation texture instead of a flat color.
   const coreGeo = new THREE.SphereGeometry(sunData.size, 64, 64);
-  const coreMat = new THREE.MeshBasicMaterial({ color: sunData.color });
+  const coreMat = new THREE.MeshBasicMaterial({
+    map: createSunTexture(sunData.color),
+  });
   const core    = new THREE.Mesh(coreGeo, coreMat);
   core.name     = 'sun-core';
   group.add(core);
@@ -53,19 +109,31 @@ function createSun(sunData) {
   const c1Mat = new THREE.MeshBasicMaterial({
     color:      sunData.glowColor,
     transparent: true,
-    opacity:     0.18,
+    opacity:     0.22,
     side:        THREE.BackSide,
     blending:    THREE.AdditiveBlending,
     depthWrite:  false,
   });
   group.add(new THREE.Mesh(c1Geo, c1Mat));
 
-  // Outer corona — wider, softer
-  const c2Geo = new THREE.SphereGeometry(sunData.size * 1.5, 32, 32);
-  const c2Mat = new THREE.MeshBasicMaterial({
-    color:      0xFF4400,
+  // Mid corona — warm red
+  const c15Geo = new THREE.SphereGeometry(sunData.size * 1.32, 32, 32);
+  const c15Mat = new THREE.MeshBasicMaterial({
+    color:      0xFF5500,
     transparent: true,
-    opacity:     0.07,
+    opacity:     0.10,
+    side:        THREE.BackSide,
+    blending:    THREE.AdditiveBlending,
+    depthWrite:  false,
+  });
+  group.add(new THREE.Mesh(c15Geo, c15Mat));
+
+  // Outer corona — wider, softer
+  const c2Geo = new THREE.SphereGeometry(sunData.size * 1.6, 32, 32);
+  const c2Mat = new THREE.MeshBasicMaterial({
+    color:      0xFF3300,
+    transparent: true,
+    opacity:     0.05,
     side:        THREE.BackSide,
     blending:    THREE.AdditiveBlending,
     depthWrite:  false,
@@ -84,42 +152,78 @@ function createPlanetMesh(data) {
   const group = new THREE.Group();
   group.name  = data.id;
 
-  // Planet sphere
-  const geo = new THREE.SphereGeometry(data.size, 48, 48);
+  // ── Generate procedural textures ────────────────────────────────────────────
+  const diffuseMap  = generatePlanetTexture(data.id);
+  const bumpMap     = generateBumpMap(data.id);
+  const specularMap = generateSpecularMap(data.id);
+
+  // ── Planet sphere — MeshPhongMaterial with texture maps ────────────────────
+  // Higher segment count (64) for smoother silhouette at close range.
+  const geo = new THREE.SphereGeometry(data.size, 64, 64);
   const mat = new THREE.MeshPhongMaterial({
-    color:     new THREE.Color(data.color),
+    // If we have a diffuse texture, use it; otherwise fall back to base color
+    ...(diffuseMap  ? { map: diffuseMap }                                  : { color: new THREE.Color(data.color) }),
+    ...(bumpMap     ? { bumpMap, bumpScale: 0.55 }                         : {}),
+    ...(specularMap ? { specularMap }                                       : {}),
     shininess: data.shininess ?? 30,
-    emissive:  new THREE.Color(data.color).multiplyScalar(0.04),
-    specular:  new THREE.Color(0x222222),
+    specular:  new THREE.Color(0x333333),
+    // Subtle emissive so the dark side isn't completely black
+    emissive:  new THREE.Color(data.color).multiplyScalar(0.025),
   });
+
   const sphere = new THREE.Mesh(geo, mat);
   sphere.name  = `${data.id}-sphere`;
   // Axial tilt on the sphere; pivot stays upright so orbit is in the XZ plane
   sphere.rotation.z = THREE.MathUtils.degToRad(data.tilt ?? 0);
   group.add(sphere);
 
-  // Ring system (Saturn, Uranus)
+  // ── Thin atmosphere rim glow (additive blending, BackSide) ─────────────────
+  if (data.atmosphereColor) {
+    const atmGeo = new THREE.SphereGeometry(data.size * 1.06, 32, 32);
+    const atmMat = new THREE.MeshBasicMaterial({
+      color:       new THREE.Color(data.atmosphereColor),
+      side:        THREE.BackSide,
+      transparent: true,
+      opacity:     0.13,
+      blending:    THREE.AdditiveBlending,
+      depthWrite:  false,
+    });
+    group.add(new THREE.Mesh(atmGeo, atmMat));
+  }
+
+  // ── Ring system (Saturn, Uranus) ────────────────────────────────────────────
   if (data.hasRings) {
     const rGeo = new THREE.RingGeometry(
       data.size * data.ringInner,
       data.size * data.ringOuter,
-      80,
+      128,   // more segments = smoother inner/outer edges
+      8,
     );
 
-    // Remap UVs so a radial texture would display correctly
+    // Remap UVs so the radial ring texture maps from inner → outer edge
     const pos = rGeo.attributes.position;
     const uv  = rGeo.attributes.uv;
     const v3  = new THREE.Vector3();
+    const outerLen = data.size * data.ringOuter;
     for (let i = 0; i < pos.count; i++) {
       v3.fromBufferAttribute(pos, i);
-      uv.setXY(i, v3.length() / (data.size * data.ringOuter), 0.5);
+      uv.setXY(i, (v3.length() - data.size * data.ringInner) / (outerLen - data.size * data.ringInner), 0.5);
     }
 
+    // Generate a banded ring texture
+    const ringTex = generateRingTexture(data.ringColor ?? '#C2A45A', {
+      opacity: data.ringOpacity ?? 0.7,
+    });
+    ringTex.wrapS = THREE.RepeatWrapping;
+    ringTex.repeat.set(1, 1);
+
     const rMat = new THREE.MeshBasicMaterial({
-      color:       new THREE.Color(data.ringColor),
+      map:         ringTex,
       side:        THREE.DoubleSide,
       transparent: true,
-      opacity:     data.ringOpacity ?? 0.6,
+      opacity:     1.0,   // opacity baked into texture alpha
+      depthWrite:  false,
+      alphaTest:   0.01,
     });
 
     const rings = new THREE.Mesh(rGeo, rMat);
