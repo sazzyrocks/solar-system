@@ -438,23 +438,26 @@ ul { list-style: none; }
 .detail-panel {
   position: fixed;
   bottom: 0;
-  left: 0; right: 0;
+  left: 50%;
+  transform: translate(-50%, 110%);
+  width: min(920px, 94vw);
   z-index: var(--z-panel);
-  padding: 20px 40px 28px;
+  padding: 18px 32px 24px;
   background: var(--glass-bg);
-  border-top: 1px solid var(--glass-border);
-  box-shadow: 0 -8px 60px rgba(0,0,0,.6);
+  border: 1px solid var(--glass-border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 60px rgba(0,0,0,.75), inset 0 1px 0 rgba(74,158,255,.2);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 
   /* Hidden — slides down out of view */
-  transform: translateY(110%);
   transition: transform 0.65s var(--ease-expo);
   will-change: transform;
 }
 
 .detail-panel.dp--visible {
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 /* ── Top bar inside panel ── */
@@ -684,6 +687,131 @@ ul { list-style: none; }
   opacity: 0.7;
 }
 
+/* ── HUD Center Tour Button ── */
+
+.hud-center {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.hud-tour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(8, 22, 48, 0.75);
+  border: 1px solid rgba(74, 158, 255, 0.35);
+  border-radius: 20px;
+  color: #00D4FF;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+}
+
+.hud-tour-btn:hover {
+  background: rgba(14, 38, 80, 0.9);
+  border-color: rgba(74, 158, 255, 0.7);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.hud-tour-btn.tour-active {
+  background: rgba(0, 180, 255, 0.22);
+  border-color: #00D4FF;
+  color: #fff;
+  box-shadow: 0 0 28px rgba(0, 212, 255, 0.5);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+.tour-play-icon {
+  fill: currentColor;
+  transition: transform 0.2s ease;
+}
+
+.hud-tour-btn:hover .tour-play-icon {
+  transform: scale(1.15);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(0, 212, 255, 0.4); }
+  50% { box-shadow: 0 0 32px rgba(0, 212, 255, 0.75); }
+}
+
+/* ── Tour Indicator Banner ── */
+
+.tour-indicator {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-hud);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: rgba(5, 14, 32, 0.9);
+  border: 1px solid rgba(74, 158, 255, 0.35);
+  border-radius: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 212, 255, 0.25);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  pointer-events: auto;
+  animation: fadeInDown 0.4s var(--ease-out);
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.tour-badge {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(0, 212, 255, 0.15);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: #00D4FF;
+  font-weight: 700;
+}
+
+.tour-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tour-exit-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tour-exit-btn:hover {
+  color: #FF5555;
+  border-color: rgba(255, 85, 85, 0.5);
+  background: rgba(255, 85, 85, 0.1);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    SEARCH BAR
@@ -1518,6 +1646,7 @@ ul { list-style: none; }
   .tm-hints { display: none; }
   .search-input { width: 130px; }
   .search-input:focus { width: 150px; }
+  .featured-drawer { width: 320px; }
 }
 
 @media (max-width: 520px) {
@@ -1525,4 +1654,479 @@ ul { list-style: none; }
   .dp-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .dp-actions { flex-direction: column; gap: 10px; align-items: center; }
   .tm-center { display: none; }
+  .drawer-toggle-label { display: none; }
+  .featured-drawer { width: 100vw; }
 }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NASA EYES 3D FLOATING LABELS
+───────────────────────────────────────────────────────────────────────── */
+
+.labels-3d-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  overflow: hidden;
+}
+
+.label-3d-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transform-origin: 50% 100%;
+  transition: opacity 0.15s ease-out;
+  will-change: transform, opacity;
+}
+
+.label-pin {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.label-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #FFFFFF;
+  background: rgba(8, 14, 28, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s, background 0.15s;
+}
+
+.label-3d-item:hover .label-text {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 212, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.label-type-mission .label-pin {
+  background: #E5A93C;
+  box-shadow: 0 0 8px rgba(229, 169, 60, 0.8);
+}
+
+.label-type-mission .label-text {
+  border-color: rgba(229, 169, 60, 0.35);
+  color: #FFDF80;
+}
+
+.label-type-mission:hover .label-text {
+  border-color: #E5A93C;
+  color: #FFFFFF;
+  background: rgba(229, 169, 60, 0.25);
+}
+
+.label-icon {
+  color: #E5A93C;
+  font-size: 0.7rem;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NASA EYES LEFT DRAWER (Featured Stories and Events)
+───────────────────────────────────────────────────────────────────────── */
+
+.drawer-toggle-btn {
+  position: fixed;
+  top: 68px;
+  left: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: rgba(10, 16, 32, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #E8F4FF;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  transition: all 0.2s ease;
+}
+
+.drawer-toggle-btn:hover {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: var(--accent);
+  transform: translateX(3px);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.drawer-burger {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.featured-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 380px;
+  background: rgba(6, 11, 24, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 24px 24px;
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.75);
+}
+
+.featured-drawer.drawer--open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.drawer-header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.drawer-nasa-pill {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: #E03C31;
+  color: #FFFFFF;
+}
+
+.drawer-heading {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.drawer-close-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.drawer-close-btn:hover {
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.drawer-subheading {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+}
+
+.drawer-cards-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+
+.drawer-cards-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.drawer-cards-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+
+.story-card {
+  background: rgba(14, 22, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.story-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  bottom: 0;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.story-card:hover {
+  background: rgba(18, 30, 60, 0.85);
+  border-color: rgba(0, 212, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.story-card:hover::before {
+  opacity: 1;
+}
+
+.story-card-tag {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.story-card-title {
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.story-card-desc {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0 0 10px 0;
+}
+
+.story-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--muted-2);
+  letter-spacing: 0.08em;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+.story-status-dot {
+  color: #00E676;
+  margin-right: 4px;
+}
+
+.story-status-dot.gold { color: #FFD54F; }
+.story-status-dot.cyan { color: #00E5FF; }
+
+.story-fly-link {
+  color: var(--accent);
+  font-weight: 700;
+  transition: transform 0.15s;
+}
+
+.story-card:hover .story-fly-link {
+  transform: translateX(3px);
+  color: #FFFFFF;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   HUD UPGRADES (NASA / JPL Brand & Control Pills)
+───────────────────────────────────────────────────────────────────────── */
+
+.hud-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hud-agency-badge {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: #E03C31;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(224, 60, 49, 0.35);
+}
+
+.agency-text {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #FFFFFF;
+}
+
+.hud-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 18px;
+  background: rgba(14, 22, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.hud-pill-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  background: rgba(20, 32, 60, 0.8);
+}
+
+.hud-pill-btn.active {
+  border-color: rgba(0, 212, 255, 0.4);
+  color: #FFFFFF;
+  background: rgba(0, 212, 255, 0.12);
+}
+
+.hud-pill-btn .pill-dot {
+  color: var(--muted-2);
+  font-size: 0.65rem;
+}
+
+.hud-pill-btn.active .pill-dot {
+  color: #00E676;
+  text-shadow: 0 0 8px #00E676;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NASA EYES TIMELINE UPGRADES (● LIVE Pill & Scrubber)
+───────────────────────────────────────────────────────────────────────── */
+
+.tm-left-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tm-live-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.5);
+  color: #00E676;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tm-live-pill:hover {
+  background: rgba(0, 230, 118, 0.28);
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.4);
+}
+
+.live-dot {
+  animation: liveBlink 1.4s infinite alternate;
+}
+
+@keyframes liveBlink {
+  0%   { opacity: 0.3; }
+  100% { opacity: 1.0; }
+}
+
+.tm-rate-badge-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   QUALITY SWITCHER & FPS BADGE
+───────────────────────────────────────────────────────────────────────── */
+.hud-fps-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(5, 16, 36, 0.75);
+  border: 1px solid rgba(74, 158, 255, 0.25);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #00E676;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(8px);
+  user-select: none;
+}
+
+.hud-fps-badge .fps-unit {
+  font-size: 0.55rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tm-kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(74, 158, 255, 0.12);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+

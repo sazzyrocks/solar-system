@@ -37,14 +37,14 @@ function formatSimDate(simDays) {
 const BASE_DAYS_PER_SEC = 365.25 / 30;   // ≈ 12.18 sim-days per real second at 1×
 
 const SPEED_STEPS  = [
-  BASE_DAYS_PER_SEC,          // 1×  — Earth orbit = 30 s
-  BASE_DAYS_PER_SEC * 10,     // 10× — Earth orbit =  3 s
+  0,                          // 0×  — Paused
+  BASE_DAYS_PER_SEC,          // 1×  — Real Rate (Earth orbit = 30 s)
   BASE_DAYS_PER_SEC * 100,    // 100×
   BASE_DAYS_PER_SEC * 1000,   // 1000×
 ];
-const SPEED_LABELS = ['1× REAL TIME', '10× REAL TIME', '100× REAL TIME', '1,000× REAL TIME'];
+const SPEED_LABELS = ['PAUSED (0×)', 'REAL RATE (1×)', '100× SPEED', '1,000× SPEED'];
 
-// ─── Search corpus — planets + Sun + notable moons ────────────────────────────
+// ─── Search corpus — planets + Sun + notable moons + spacecraft ───────────────
 // Moons are mapped to their parent planet id so the fly-to still works.
 
 const NOTABLE_MOONS = [
@@ -58,6 +58,16 @@ const NOTABLE_MOONS = [
   { id: 'triton',    name: 'Triton',       parent: 'neptune', hint: "Neptune's largest moon"   },
   { id: 'phobos',    name: 'Phobos',       parent: 'mars',    hint: "Mars's inner moon"        },
   { id: 'miranda',   name: 'Miranda',      parent: 'uranus',  hint: "Uranus's chaotic moon"    },
+];
+
+const SPACECRAFT_SEARCH = [
+  { id: 'webb',        name: 'James Webb Space Telescope (JWST)', hint: 'Sun-Earth L2 Space Observatory', isMission: true },
+  { id: 'voyager1',    name: 'Voyager 1',                         hint: 'Interstellar Probe · 162+ AU',   isMission: true },
+  { id: 'voyager2',    name: 'Voyager 2',                         hint: 'Grand Tour · Interstellar',      isMission: true },
+  { id: 'cassini',     name: 'Cassini-Huygens',                   hint: 'Saturn Orbiter & Titan Probe',   isMission: true },
+  { id: 'parker',      name: 'Parker Solar Probe',                hint: 'Solar Corona Diving Probe',      isMission: true },
+  { id: 'artemis2',    name: 'Artemis II Orion',                  hint: 'Crewed Lunar Flyby Spacecraft',  isMission: true },
+  { id: 'newhorizons', name: 'New Horizons',                      hint: 'Pluto & Kuiper Belt Explorer',   isMission: true },
 ];
 
 // ─── Mission status → colour class ────────────────────────────────────────────
@@ -142,14 +152,59 @@ export class UIManager {
     this._tmDate      = document.getElementById('tm-date');
     this._tmSpeed     = document.getElementById('tm-speed-label');
     this._tmSlider    = document.getElementById('time-slider');
+    this._tmLiveBtn   = document.getElementById('tm-live-btn');
+
+    // ── NASA Eyes Controls & Drawer ──
+    this._drawer          = document.getElementById('featured-drawer');
+    this._drawerToggleBtn = document.getElementById('drawer-toggle-btn');
+    this._drawerCloseBtn  = document.getElementById('drawer-close-btn');
+    this._btnToggleLabels = document.getElementById('btn-toggle-labels');
+    this._btnToggleTrajectories = document.getElementById('btn-toggle-trajectories');
+
+    // ── Tour ──
+    this._btnTour         = document.getElementById('btn-cinematic-tour');
+    this._tourIndicator   = document.getElementById('tour-indicator');
+    this._tourPlanetLabel = document.getElementById('tour-planet-label');
+    this._tourExitBtn     = document.getElementById('tour-exit-btn');
 
     // ── Internal state ──
     this._onSelectPlanet = null;  // injected by InteractionManager.onPlanetSelect()
     this._aiAssistant    = null;  // injected by app.js via setAIAssistant()
+    this._missions3D     = null;  // injected by app.js via setMissions3D()
+    this._labels3D       = null;  // injected by app.js via setLabels3D()
 
     this._bindSearch();
     this._bindTimeSlider();
     this._bindMissionCard();
+    this._bindTour();
+    this._bindDrawer();
+    this._bindNASAControls();
+    this._bindQualityToggle();
+    this._bindKeyboardShortcuts();
+  }
+
+  setSolarSystem(solarSystem) {
+    this._solarSystem = solarSystem;
+    if (this._qualityBtnLabel && solarSystem.quality) {
+      this._qualityBtnLabel.textContent = solarSystem.quality === 'performance' ? 'PERF' : solarSystem.quality.toUpperCase();
+    }
+  }
+
+  updateFps(fps) {
+    if (!this._fpsVal) {
+      this._fpsVal = document.getElementById('fps-val');
+    }
+    if (this._fpsVal) {
+      this._fpsVal.textContent = fps;
+    }
+  }
+
+  setMissions3D(missions3D) {
+    this._missions3D = missions3D;
+  }
+
+  setLabels3D(labels3D) {
+    this._labels3D = labels3D;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -189,6 +244,7 @@ export class UIManager {
     setTimeout(() => {
       this._wordmark?.classList.add('hud--visible');
       this._searchContainer?.classList.add('hud--visible');
+      document.querySelector('.hud-center')?.classList.add('hud--visible');
       this._timeMachine?.classList.add('hud--visible');
       document.getElementById('audio-toggle')?.classList.add('hud--visible');
       this._aiAssistant?.show();
@@ -379,9 +435,19 @@ export class UIManager {
       hint:     m.hint,
       order:    null,
       parentId: m.parent,
+      isMission: false,
     }));
 
-    const corpus = [SUN_ENTRY, ...planetEntries, ...moonEntries];
+    const spacecraftEntries = SPACECRAFT_SEARCH.map(s => ({
+      id:       s.id,
+      name:     s.name,
+      hint:     s.hint,
+      order:    null,
+      parentId: null,
+      isMission: true,
+    }));
+
+    const corpus = [SUN_ENTRY, ...planetEntries, ...moonEntries, ...spacecraftEntries];
 
     const openDropdown = () => {
       dropdown.classList.add('sd--open');
@@ -411,8 +477,9 @@ export class UIManager {
         return `
           <li class="sd-item" role="option" data-id="${e.id}"
               data-parent="${e.parentId ?? ''}"
+              data-is-mission="${e.isMission ? 'true' : 'false'}"
               tabindex="0" aria-label="${e.name}, ${e.hint}">
-            <span class="sd-name">${e.name}</span>
+            <span class="sd-name">${e.isMission ? '⬡ ' : ''}${e.name}</span>
             <span class="sd-hint">${e.hint}${note ? ' · <em>' + note + '</em>' : ''}</span>
           </li>`;
       }).join('');
@@ -421,6 +488,18 @@ export class UIManager {
         const activate = () => {
           closeDropdown();
           input.value = '';
+
+          const isMission = item.dataset.isMission === 'true';
+          if (isMission && this._missions3D) {
+            const sc = this._missions3D.getSpacecraft(item.dataset.id);
+            if (sc) {
+              this.hideDetailPanel();
+              this.hideHoverCard();
+              this._cameraCtrl.flyToSpacecraft(sc);
+              return;
+            }
+          }
+
           // Moons navigate to their parent planet; everything else by its own id
           const navId = item.dataset.parent || item.dataset.id;
           this._onSelectPlanet?.(navId);
@@ -468,6 +547,181 @@ export class UIManager {
 
     slider.addEventListener('input', update);
     update();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //   CINEMATIC TOUR UI
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _bindTour() {
+    if (!this._btnTour) return;
+
+    this._btnTour.addEventListener('click', () => {
+      if (this._cameraCtrl.isTouring()) {
+        this._cameraCtrl.stopTour();
+        this.endTourUI();
+      } else {
+        this.startTourUI();
+        this._cameraCtrl.startTour(
+          this._planetManager,
+          (planetId, idx, total) => {
+            const planet = this._data.planets.find(p => p.id === planetId);
+            const name = planet ? planet.name.toUpperCase() : planetId.toUpperCase();
+            this.updateTourUI(name, idx, total);
+          },
+          () => {
+            this.endTourUI();
+          }
+        );
+      }
+    });
+
+    if (this._tourExitBtn) {
+      this._tourExitBtn.addEventListener('click', () => {
+        this._cameraCtrl.stopTour();
+        this.endTourUI();
+        this._cameraCtrl.resetView();
+      });
+    }
+  }
+
+  startTourUI() {
+    this.hideDetailPanel();
+    this.hideHoverCard();
+    if (this._btnTour) this._btnTour.classList.add('tour-active');
+    if (this._tourIndicator) this._tourIndicator.style.display = 'flex';
+  }
+
+  updateTourUI(planetName, idx, total) {
+    if (this._tourPlanetLabel) {
+      this._tourPlanetLabel.textContent = `FLYING TO ${planetName} (${idx}/${total})`;
+    }
+  }
+
+  endTourUI() {
+    if (this._btnTour) this._btnTour.classList.remove('tour-active');
+    if (this._tourIndicator) this._tourIndicator.style.display = 'none';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //   NASA EYES LEFT DRAWER & CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _bindDrawer() {
+    if (!this._drawerToggleBtn || !this._drawer) return;
+
+    this._drawerToggleBtn.addEventListener('click', () => {
+      this._drawer.classList.toggle('drawer--open');
+      this._drawer.setAttribute('aria-hidden', !this._drawer.classList.contains('drawer--open'));
+    });
+
+    if (this._drawerCloseBtn) {
+      this._drawerCloseBtn.addEventListener('click', () => {
+        this._drawer.classList.remove('drawer--open');
+        this._drawer.setAttribute('aria-hidden', 'true');
+      });
+    }
+
+    const cards = this._drawer.querySelectorAll('.story-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const type = card.dataset.targetType;
+        const id   = card.dataset.targetId;
+
+        // Close drawer on selection
+        this._drawer.classList.remove('drawer--open');
+        this._drawer.setAttribute('aria-hidden', 'true');
+
+        if (type === 'mission' && this._missions3D) {
+          const sc = this._missions3D.getSpacecraft(id);
+          if (sc) {
+            this.hideDetailPanel();
+            this.hideHoverCard();
+            this._cameraCtrl.flyToSpacecraft(sc);
+          }
+        } else if (type === 'planet' && this._onSelectPlanet) {
+          this._onSelectPlanet(id);
+        }
+      });
+    });
+  }
+
+  _bindNASAControls() {
+    if (this._btnToggleLabels) {
+      this._btnToggleLabels.addEventListener('click', () => {
+        if (!this._labels3D) return;
+        const visible = this._labels3D.toggle();
+        this._btnToggleLabels.classList.toggle('active', visible);
+      });
+    }
+
+    if (this._btnToggleTrajectories) {
+      this._btnToggleTrajectories.addEventListener('click', () => {
+        if (!this._missions3D) return;
+        const visible = this._missions3D.toggleTrajectories();
+        this._btnToggleTrajectories.classList.toggle('active', visible);
+      });
+    }
+
+    if (this._tmLiveBtn && this._tmSlider) {
+      this._tmLiveBtn.addEventListener('click', () => {
+        // Reset slider to step 1 (1x Real Rate)
+        this._tmSlider.value = 1;
+        this._tmSlider.dispatchEvent(new Event('input'));
+      });
+    }
+  }
+
+  _bindQualityToggle() {
+    const btn = document.getElementById('btn-quality-toggle');
+    const label = document.getElementById('quality-btn-label');
+    this._qualityBtnLabel = label;
+    if (!btn) return;
+
+    const modes = ['high', 'balanced', 'performance', 'ultra'];
+    btn.addEventListener('click', () => {
+      const current = (this._solarSystem && this._solarSystem.quality) || 'high';
+      const nextIdx = (modes.indexOf(current) + 1) % modes.length;
+      const nextMode = modes[nextIdx];
+      if (this._solarSystem) {
+        this._solarSystem.setQuality(nextMode);
+      }
+      if (label) {
+        label.textContent = nextMode === 'performance' ? 'PERF' : nextMode.toUpperCase();
+      }
+    });
+  }
+
+  _bindKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const slider = this._tmSlider;
+        if (slider) {
+          slider.value = slider.value === '0' ? '1' : '0';
+          slider.dispatchEvent(new Event('input'));
+        }
+      } else if (e.key >= '1' && e.key <= '8') {
+        const idx = parseInt(e.key, 10) - 1;
+        const planet = this._data.planets[idx];
+        if (planet && this._onSelectPlanet) {
+          this._onSelectPlanet(planet.id);
+        }
+      } else if (e.key === '0' || e.key.toLowerCase() === 's') {
+        if (this._onSelectPlanet) {
+          this._onSelectPlanet('sun');
+        }
+      } else if (e.key.toLowerCase() === 'f') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════

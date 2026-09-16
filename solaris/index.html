@@ -213,18 +213,152 @@
 
 
   <!-- ═══════════════════════════════════════════════════════════════
-       HUD — fixed top bar (wordmark + search)
+       3D LABELS OVERLAY (Screen-space projected labels)
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="labels-3d-overlay" class="labels-3d-overlay" aria-hidden="true"></div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       NASA EYES FEATURED STORIES & MISSIONS DRAWER (Left Drawer)
+  ═══════════════════════════════════════════════════════════════ -->
+  <button id="drawer-toggle-btn" class="drawer-toggle-btn" aria-label="Toggle Featured Missions & Stories" title="Featured Stories and Events">
+    <span class="drawer-burger">☰</span>
+    <span class="drawer-toggle-label">FEATURED STORIES & EVENTS</span>
+  </button>
+
+  <aside id="featured-drawer" class="featured-drawer" aria-label="Featured missions and celestial events" aria-hidden="true">
+    <div class="drawer-header">
+      <div class="drawer-header-brand">
+        <span class="drawer-nasa-pill">NASA / JPL</span>
+        <h2 class="drawer-heading">FEATURED STORIES AND EVENTS</h2>
+      </div>
+      <button id="drawer-close-btn" class="drawer-close-btn" aria-label="Close featured stories">✕</button>
+    </div>
+
+    <p class="drawer-subheading">Select any mission or story to pilot directly in real-time 3D space:</p>
+
+    <div class="drawer-cards-list" id="drawer-cards-list">
+      <!-- Cards rendered dynamically or via high-impact templates -->
+      <article class="story-card" data-target-type="mission" data-target-id="webb">
+        <div class="story-card-tag">SPACE OBSERVATORY</div>
+        <h3 class="story-card-title">James Webb Space Telescope</h3>
+        <p class="story-card-desc">Observing cosmic dawn and the earliest galaxies from halo orbit around Sun-Earth L2 Lagrange point.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot">●</span> <span>ACTIVE · L2 HALO</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="voyager1">
+        <div class="story-card-tag">INTERSTELLAR PROBE</div>
+        <h3 class="story-card-title">Voyager 1: Beyond the Solar System</h3>
+        <p class="story-card-desc">Humanity's farthest emissary, flying past the heliopause into deep interstellar space at 17 km/s.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot">●</span> <span>ACTIVE · 162+ AU</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="voyager2">
+        <div class="story-card-tag">INTERSTELLAR PROBE</div>
+        <h3 class="story-card-title">Voyager 2: The Grand Tour</h3>
+        <p class="story-card-desc">The only spacecraft to visit Uranus and Neptune, now exploring the interstellar medium beyond the sun.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot">●</span> <span>ACTIVE · INTERSTELLAR</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="cassini">
+        <div class="story-card-tag">FLAGSHIP ORBITER</div>
+        <h3 class="story-card-title">Cassini-Huygens at Saturn</h3>
+        <p class="story-card-desc">Thirteen years in Saturnian orbit revealing geysers on Enceladus and methane seas on giant moon Titan.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot gold">●</span> <span>GRAND FINALE ARCHIVE</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="parker">
+        <div class="story-card-tag">HELIOPHYSICS</div>
+        <h3 class="story-card-title">Parker Solar Probe: Touching the Sun</h3>
+        <p class="story-card-desc">Braving extreme heat and radiation, diving through the solar corona faster than any human-made craft.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot">●</span> <span>ACTIVE · SOLAR PERIHELION</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="artemis2">
+        <div class="story-card-tag">LUNAR EXPLORATION</div>
+        <h3 class="story-card-title">Artemis II: Crewed Lunar Flyby</h3>
+        <p class="story-card-desc">Orion spacecraft carrying four astronauts on a figure-eight trajectory around the Moon, ushering deep space return.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot cyan">●</span> <span>UPCOMING · CISLUNAR</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+
+      <article class="story-card" data-target-type="mission" data-target-id="newhorizons">
+        <div class="story-card-tag">KUIPER BELT</div>
+        <h3 class="story-card-title">New Horizons: Beyond Pluto</h3>
+        <p class="story-card-desc">Historic close flyby of Pluto and Charon, and contact binary Arrokoth in the frozen outer edge of our system.</p>
+        <div class="story-card-footer">
+          <span class="story-status-dot">●</span> <span>ACTIVE · KUIPER BELT</span>
+          <span class="story-fly-link">FLY TO PROBE →</span>
+        </div>
+      </article>
+    </div>
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       HUD — fixed top bar (NASA Eyes branding, Tour, Toggles & Search)
   ═══════════════════════════════════════════════════════════════ -->
   <header id="hud" class="hud" role="banner">
 
-    <!-- Wordmark (left) -->
-    <div class="hud-wordmark" id="hud-wordmark" aria-label="SOLARIS">
-      <span class="wordmark-sol">SOL</span><span class="wordmark-aris">ARIS</span>
+    <!-- NASA JPL Badge & Wordmark (left) -->
+    <div class="hud-left-group">
+      <div class="hud-agency-badge" title="National Aeronautics and Space Administration">
+        <span class="agency-text">NASA / JPL</span>
+      </div>
+      <div class="hud-wordmark" id="hud-wordmark" aria-label="SOLARIS">
+        <span class="wordmark-sol">SOL</span><span class="wordmark-aris">ARIS</span>
+      </div>
+    </div>
+
+    <!-- Center: Controls & Toggles -->
+    <div class="hud-center">
+      <button id="btn-cinematic-tour" class="hud-pill-btn" aria-label="Start Cinematic Solar System Tour">
+        <svg class="tour-play-icon" viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span id="tour-btn-label">CINEMATIC TOUR</span>
+      </button>
+
+      <button id="btn-toggle-labels" class="hud-pill-btn active" aria-label="Toggle 3D Labels" title="Toggle 3D labels for planets and probes">
+        <span class="pill-dot">●</span>
+        <span>LABELS</span>
+      </button>
+
+      <button id="btn-toggle-trajectories" class="hud-pill-btn active" aria-label="Toggle Spacecraft Trajectories" title="Toggle mission orbit trajectories">
+        <span class="pill-dot">●</span>
+        <span>TRAJECTORIES</span>
+      </button>
+
+      <button id="btn-quality-toggle" class="hud-pill-btn" aria-label="Toggle Graphics Quality" title="Toggle Quality: Ultra, High, Balanced, Performance">
+        <span class="pill-dot gold">●</span>
+        <span id="quality-btn-label">HIGH</span>
+      </button>
+
+      <div id="fps-badge" class="hud-fps-badge" title="Real-time Frame Rate">
+        <span id="fps-val">60</span><span class="fps-unit">FPS</span>
+      </div>
     </div>
 
     <!-- Search bar (right) -->
     <div id="search-container" class="search-container" role="search">
-      <label for="search-input" class="sr-only">Search planets</label>
+      <label for="search-input" class="sr-only">Search planets and spacecraft</label>
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -235,10 +369,10 @@
           type="search"
           id="search-input"
           class="search-input"
-          placeholder="Search planets…"
+          placeholder="Search celestial bodies & probes…"
           autocomplete="off"
           spellcheck="false"
-          aria-label="Search planets"
+          aria-label="Search planets and spacecraft"
           aria-autocomplete="list"
           aria-controls="search-dropdown"
           aria-expanded="false"
@@ -250,46 +384,64 @@
 
   </header><!-- /hud -->
 
+  <!-- Floating Cinematic Tour Banner -->
+  <div id="tour-indicator" class="tour-indicator" style="display:none" aria-live="polite">
+    <div class="tour-indicator-content">
+      <span class="tour-badge">CINEMATIC TOUR</span>
+      <span id="tour-planet-label" class="tour-title">FLYING TO MERCURY</span>
+    </div>
+    <button id="tour-exit-btn" class="tour-exit-btn" aria-label="Exit tour">✕ EXIT</button>
+  </div>
+
 
   <!-- ═══════════════════════════════════════════════════════════════
-       TIME MACHINE — fixed bottom bar
+       TIME MACHINE — fixed bottom bar (NASA Eyes LIVE status & Scrubber)
   ═══════════════════════════════════════════════════════════════ -->
   <div id="time-machine" class="time-machine" role="group" aria-label="Time speed controls">
 
-    <!-- Left: live date -->
-    <div class="tm-date-block">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="1.5" width="13" height="13" class="tm-clock-icon" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-      <span id="tm-date" class="tm-date">JAN 1, 2025</span>
+    <!-- Left: NASA Eyes LIVE pill + Date -->
+    <div class="tm-left-group">
+      <button id="tm-live-btn" class="tm-live-pill" title="Reset to Live Current Rate">
+        <span class="live-dot">●</span> LIVE
+      </button>
+      <div class="tm-date-block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" width="13" height="13" class="tm-clock-icon" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span id="tm-date" class="tm-date">JAN 1, 2025</span>
+      </div>
     </div>
 
-    <!-- Center: slider + speed label -->
+    <!-- Center: Scrubber + Real Rate label -->
     <div class="tm-center">
       <div class="tm-slider-row">
-        <span class="tm-tick">1×</span>
+        <span class="tm-tick">PAUSE</span>
         <input
           type="range"
           id="time-slider"
           class="tm-slider"
-          min="0" max="3" step="1" value="0"
+          min="0" max="3" step="1" value="1"
           aria-label="Time speed multiplier"
           aria-valuetext="1x real time"
         />
-        <span class="tm-tick">1K×</span>
+        <span class="tm-tick">1000×</span>
       </div>
-      <span id="tm-speed-label" class="tm-speed-label">1× REAL TIME</span>
+      <div class="tm-rate-badge-wrap">
+        <span id="tm-speed-label" class="tm-speed-label">REAL RATE (1×)</span>
+      </div>
     </div>
 
-    <!-- Right: nav hints -->
+    <!-- Right: navigation controls hint -->
     <div class="tm-hints" aria-hidden="true">
-      <span>DRAG</span>
+      <span class="tm-kbd" title="Press 1-8 keys to fly to planets">1–8 PLANETS</span>
       <span class="tm-dot">·</span>
-      <span>SCROLL</span>
+      <span class="tm-kbd" title="Press Space to pause or play">SPACE PAUSE</span>
       <span class="tm-dot">·</span>
-      <span>RIGHT-DRAG</span>
+      <span>DRAG ORBIT</span>
+      <span class="tm-dot">·</span>
+      <span>SCROLL ZOOM</span>
     </div>
 
   </div><!-- /time-machine -->
