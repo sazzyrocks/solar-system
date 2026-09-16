@@ -97,7 +97,6 @@ export class AsteroidBelt {
       col.b = Math.min(1, col.b * jitter);
       this._mesh.setColorAt(i, col);
 
-      // Initial matrix
       const d = this._data[i];
       this._dummy.position.set(
         Math.cos(d.angle0) * d.radius,
@@ -114,7 +113,68 @@ export class AsteroidBelt {
     if (this._mesh.instanceColor) this._mesh.instanceColor.needsUpdate = true;
     this._scene.add(this._mesh);
 
-    console.log(`[SOLARIS] Asteroid belt: ${this._count} instances (warped + colored)`);
+    // ── Jupiter Trojan & Greek Asteroids (L4 & L5) ───────────────────────────
+    this._trojanCount = Math.floor(this._count * 0.35); // ~350-600 trojans
+    this._trojanData  = [];
+    const trojanMat   = mat.clone();
+    this._trojanMesh  = new THREE.InstancedMesh(geo, trojanMat, this._trojanCount);
+    this._trojanMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._trojanMesh.frustumCulled = false;
+    this._trojanMesh.name = 'trojan-asteroids';
+
+    const JUPITER_ORBIT_R = 62;
+    for (let i = 0; i < this._trojanCount; i++) {
+      // Half in L4 (+60 deg), half in L5 (-60 deg)
+      const isL4 = i % 2 === 0;
+      const lagrangeLag = isL4 ? (Math.PI / 3) : (-Math.PI / 3);
+      // Angular spread around Lagrange point (normal distribution approximation)
+      const angularScatter = (Math.random() + Math.random() - 1.0) * 0.38;
+      // Radial spread around Jupiter's orbit
+      const rOffset = (Math.random() + Math.random() - 1.0) * 4.5;
+      const radius  = JUPITER_ORBIT_R + rOffset;
+      const y       = (Math.random() - 0.5) * 5.0; // Higher inclination for Trojans
+      const scale   = 0.05 + Math.random() * 0.14;
+
+      this._trojanData.push({
+        isL4,
+        lagrangeLag,
+        angularScatter,
+        radius,
+        y,
+        rx0:     Math.random() * Math.PI * 2,
+        ry0:     Math.random() * Math.PI * 2,
+        rz0:     Math.random() * Math.PI * 2,
+        rxSpeed: (Math.random() - 0.5) * 1.1,
+        rySpeed: (Math.random() - 0.5) * 1.1,
+        rzSpeed: (Math.random() - 0.5) * 0.5,
+        scale,
+      });
+
+      // Trojans tend to be D-type and P-type asteroids (darker, slightly redder/carbonaceous)
+      const trojanCol = new THREE.Color(isL4 ? 0x6a5848 : 0x5a4d42);
+      trojanCol.r *= (0.8 + Math.random() * 0.4);
+      trojanCol.g *= (0.8 + Math.random() * 0.4);
+      trojanCol.b *= (0.8 + Math.random() * 0.35);
+      this._trojanMesh.setColorAt(i, trojanCol);
+
+      const td = this._trojanData[i];
+      const initialAngle = td.lagrangeLag + td.angularScatter;
+      this._dummy.position.set(
+        Math.cos(initialAngle) * td.radius,
+        td.y,
+        Math.sin(initialAngle) * td.radius
+      );
+      this._dummy.rotation.set(td.rx0, td.ry0, td.rz0);
+      this._dummy.scale.setScalar(td.scale);
+      this._dummy.updateMatrix();
+      this._trojanMesh.setMatrixAt(i, this._dummy.matrix);
+    }
+
+    this._trojanMesh.instanceMatrix.needsUpdate = true;
+    if (this._trojanMesh.instanceColor) this._trojanMesh.instanceColor.needsUpdate = true;
+    this._scene.add(this._trojanMesh);
+
+    console.log(`[SOLARIS] Asteroid belt: ${this._count} main belt + ${this._trojanCount} Jupiter Trojans`);
   }
 
   /**
@@ -159,31 +219,22 @@ export class AsteroidBelt {
 
   // ─── Per-frame update ──────────────────────────────────────────────────────
 
-  update(delta) {
+  update(delta, jupiterAngle) {
     this._elapsed += delta;
 
-    // Throttle GPU uploads: every 3rd frame (~20fps at 60fps target)
-    if (++this._frameCtr % 3 !== 0) return;
-
-    for (let i = 0; i < this._count; i++) {
-      const d = this._data[i];
-      const angle = d.angle0 + d.orbitSpeed * this._elapsed;
-
-      this._dummy.position.set(
-        Math.cos(angle) * d.radius,
-        d.y,
-        Math.sin(angle) * d.radius,
-      );
-      this._dummy.rotation.set(
-        d.rx0 + d.rxSpeed * this._elapsed,
-        d.ry0 + d.rySpeed * this._elapsed,
-        d.rz0 + d.rzSpeed * this._elapsed,
-      );
-      this._dummy.scale.setScalar(d.scale);
-      this._dummy.updateMatrix();
-      this._mesh.setMatrixAt(i, this._dummy.matrix);
+    // Direct GPU orbital rotation: Silky-smooth 60/120+ FPS with ZERO CPU overhead
+    // Asteroid belt average orbital progression between Mars and Jupiter
+    if (this._mesh) {
+      this._mesh.rotation.y += delta * 0.014;
     }
 
-    this._mesh.instanceMatrix.needsUpdate = true;
+    // Jupiter Trojans lock directly to Jupiter's orbital angle on GPU
+    if (this._trojanMesh) {
+      if (jupiterAngle !== undefined) {
+        this._trojanMesh.rotation.y = jupiterAngle;
+      } else {
+        this._trojanMesh.rotation.y += delta * 0.008;
+      }
+    }
   }
 }

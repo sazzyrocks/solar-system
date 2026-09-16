@@ -1,20 +1,16 @@
 /**
- * interactions.js — SOLARIS Phase C
+ * interactions.js — SOLARIS Phase C & D Upgrades
  * Responsibility:
  *   - Raycasting for planet hover + click
- *   - Hover highlight API (delegates to PlanetManager)
- *   - Click-to-explore (generic planets + Saturn special path)
- *   - Saturn ring tooltip (inline DOM, no UIManager dependency)
- *   - ESC to reset
- *   - Search-triggered selection (via UIManager.onPlanetSelect callback)
+ *   - Smooth real-time camera tracking on planet selection
+ *   - Saturn ring tooltip
+ *   - ESC and Back buttons to reset
+ *   - Search & AI Assistant navigation integration
  */
 
 import * as THREE from 'three';
 
 // ─── Saturn ring composition zones ────────────────────────────────────────────
-// Keyed by (hitDistance / saturn.size) ratio.
-// Saturn size = 2.8, ringInner = 1.45 → inner edge = 4.06 world units
-//                    ringOuter = 2.50 → outer edge = 7.00 world units
 const RING_ZONES = [
   { maxRatio: 1.60, label: 'C Ring — fine dust & dark particles' },
   { maxRatio: 1.85, label: 'B Ring — dense water-ice particles'  },
@@ -23,18 +19,7 @@ const RING_ZONES = [
   { maxRatio: 2.60, label: 'F Ring — braided, narrow outer ring' },
 ];
 
-// ─── InteractionManager ───────────────────────────────────────────────────────
-
 export class InteractionManager {
-  /**
-   * @param {object} deps
-   * @param {THREE.Scene}             deps.scene
-   * @param {THREE.PerspectiveCamera} deps.camera
-   * @param {THREE.WebGLRenderer}     deps.renderer
-   * @param {PlanetManager}           deps.planetManager
-   * @param {UIManager}               deps.ui
-   * @param {CameraController}        deps.cameraCtrl
-   */
   constructor({ scene, camera, renderer, planetManager, ui, cameraCtrl }) {
     this._scene         = scene;
     this._camera        = camera;
@@ -43,36 +28,43 @@ export class InteractionManager {
     this._ui            = ui;
     this._cameraCtrl    = cameraCtrl;
 
-    this._raycaster    = new THREE.Raycaster();
-    this._pointer      = new THREE.Vector2(-9999, -9999);
+    this._raycaster     = new THREE.Raycaster();
+    this._pointer       = new THREE.Vector2(-9999, -9999);
 
-    this._hoveredId    = null;   // planet id currently under cursor
-    this._selectedId   = null;   // planet id whose detail panel is open
-    this._sceneReady   = false;  // raycasting inactive until ENTER is clicked
+    this._hoveredId     = null;
+    this._selectedId    = null;
+    this._sceneReady    = false;
 
-    this._mouseDownPos = new THREE.Vector2();
+    this._mouseDownPos  = new THREE.Vector2();
 
-    // Ring tooltip DOM (managed entirely here — not via UIManager)
-    this._ringTip = this._createRingTooltip();
+    this._ringTip       = this._createRingTooltip();
+    this._missions3D    = null;
+    this._hoveredMissionId = null;
+
+    this._pointerDirty  = false;
+    this._lastClientX   = 0;
+    this._lastClientY   = 0;
 
     // Wire search selection
-    this._ui.onPlanetSelect((id) => this._selectPlanet(id));
+    this._ui.onPlanetSelect((id) => this.navigateTo(id));
+  }
+
+  setMissions3D(missions3D) {
+    this._missions3D = missions3D;
   }
 
   // ─── Public API ──────────────────────────────────────────────────────────────
 
-  /** Activate interactions. Called 2 s after ENTER click (camera anim underway). */
   setSceneReady() {
     this._sceneReady = true;
     this._bindEvents();
   }
 
-  // ─── Ring tooltip (inline DOM) ───────────────────────────────────────────────
+  // ─── Ring Tooltip (Inline DOM) ───────────────────────────────────────────────
 
   _createRingTooltip() {
     const el = document.createElement('div');
     el.id    = 'ring-tooltip';
-    // All styles inline so we don't need to touch style.css for this element
     Object.assign(el.style, {
       position:        'fixed',
       zIndex:          '450',
@@ -96,9 +88,9 @@ export class InteractionManager {
   }
 
   _showRingTip(text, cx, cy) {
-    this._ringTip.textContent  = text;
-    this._ringTip.style.left   = `${cx + 16}px`;
-    this._ringTip.style.top    = `${cy - 24}px`;
+    this._ringTip.textContent   = text;
+    this._ringTip.style.left    = `${cx + 16}px`;
+    this._ringTip.style.top     = `${cy - 24}px`;
     this._ringTip.style.opacity = '1';
   }
 
@@ -106,13 +98,18 @@ export class InteractionManager {
     this._ringTip.style.opacity = '0';
   }
 
-  // ─── Event binding ───────────────────────────────────────────────────────────
+  // ─── Event Binding ───────────────────────────────────────────────────────────
 
   _bindEvents() {
     const el = this._renderer.domElement;
 
     el.addEventListener('pointerdown', (e) => {
       this._mouseDownPos.set(e.clientX, e.clientY);
+      // Cancel tour if user initiates mouse drag
+      if (this._cameraCtrl.isTouring()) {
+        this._cameraCtrl.stopTour();
+        this._ui.endTourUI();
+      }
     });
 
     el.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -130,18 +127,17 @@ export class InteractionManager {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  /** All planet sphere meshes with their data + 1-based order. */
   _getPlanetMeshes() {
     return this._planetManager.getPlanetObjects()
       .map((obj, i) => ({
         mesh:  obj.group.getObjectByName(`${obj.data.id}-sphere`),
         data:  obj.data,
         order: i + 1,
+        obj,
       }))
       .filter(x => x.mesh != null);
   }
 
-  /** Project world position → screen {x, y}. */
   _worldToScreen(wp) {
     const v = wp.clone().project(this._camera);
     return {
@@ -150,30 +146,24 @@ export class InteractionManager {
     };
   }
 
-  /** Normalise pointer from PointerEvent into NDC for raycaster. */
   _updatePointer(event) {
     const rect = this._renderer.domElement.getBoundingClientRect();
     this._pointer.x =  ((event.clientX - rect.left) / rect.width)  * 2 - 1;
     this._pointer.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1;
   }
 
-  // ─── Pointer move ─────────────────────────────────────────────────────────
+  // ─── Pointer Move ─────────────────────────────────────────────────────────
 
   _onPointerMove(event) {
     this._updatePointer(event);
+    this._pointerDirty = true;
+    this._lastClientX = event.clientX;
+    this._lastClientY = event.clientY;
+  }
 
-    // ── While a planet is selected, only handle Saturn ring tooltip ──────────
-    if (this._selectedId) {
-      if (this._selectedId === 'saturn') {
-        this._updateRingTooltip(event.clientX, event.clientY);
-      }
-      return;
-    }
+  _performRaycast() {
+    if (this._cameraCtrl._isAnimating || this._cameraCtrl.isTouring()) return;
 
-    // ── Don't hover while camera tween is running ────────────────────────────
-    if (this._cameraCtrl._isAnimating) return;
-
-    // ── Standard planet hover raycasting ─────────────────────────────────────
     this._raycaster.setFromCamera(this._pointer, this._camera);
     const targets  = this._getPlanetMeshes();
     const meshList = targets.map(t => t.mesh);
@@ -186,7 +176,6 @@ export class InteractionManager {
       const newId = hit.data.id;
 
       if (this._hoveredId !== newId) {
-        // Un-highlight the previous planet first
         if (this._hoveredId) this._planetManager.unhighlightPlanet(this._hoveredId);
 
         this._hoveredId = newId;
@@ -207,13 +196,6 @@ export class InteractionManager {
     }
   }
 
-  // ─── Saturn ring tooltip ─────────────────────────────────────────────────────
-
-  /**
-   * Raycast against Saturn's ring mesh and show a composition tooltip.
-   * @param {number} cx  Cursor clientX
-   * @param {number} cy  Cursor clientY
-   */
   _updateRingTooltip(cx, cy) {
     const saturnObj = this._planetManager.getPlanetObjects()
       .find(o => o.data.id === 'saturn');
@@ -230,7 +212,7 @@ export class InteractionManager {
     const hitPt     = hits[0].point;
     const saturnPos = this._planetManager.getPlanetWorldPosition('saturn');
     const dist      = hitPt.distanceTo(saturnPos);
-    const ratio     = dist / saturnObj.data.size;  // normalise by planet radius
+    const ratio     = dist / saturnObj.data.size;
 
     const zone = RING_ZONES.find(z => ratio <= z.maxRatio);
     this._showRingTip(zone ? zone.label : 'Outer ring boundary', cx, cy);
@@ -239,6 +221,10 @@ export class InteractionManager {
   // ─── Click ────────────────────────────────────────────────────────────────────
 
   _onClick() {
+    if (this._hoveredMissionId && this._missions3D) {
+      this.navigateTo(this._hoveredMissionId);
+      return;
+    }
     if (!this._hoveredId) return;
     const targets = this._getPlanetMeshes();
     const hit     = targets.find(t => t.data.id === this._hoveredId);
@@ -248,25 +234,46 @@ export class InteractionManager {
   // ─── ESC ──────────────────────────────────────────────────────────────────────
 
   _onEscape() {
+    if (this._cameraCtrl.isTouring()) {
+      this._cameraCtrl.stopTour();
+      this._ui.endTourUI();
+    }
     if (!this._selectedId) return;
     this._hideRingTip();
     this._selectedId = null;
     this._ui.hideDetailPanel();
+    this._cameraCtrl.clearTrackedPlanet();
     this._cameraCtrl.resetView();
     this._renderer.domElement.style.cursor = 'grab';
   }
 
-  // ─── Planet selection (click + search unified) ───────────────────────────────
+  // ─── Planet Selection & Real-Time Tracking ────────────────────────────────────
 
-  /**
-   * Public navigation entry point (used by search and AI Assistant).
-   * @param {string} id  Planet id or 'sun'
-   */
   navigateTo(id) {
+    if (this._missions3D) {
+      const sc = this._missions3D.getSpacecraft(id);
+      if (sc) {
+        if (this._cameraCtrl.isTouring()) {
+          this._cameraCtrl.stopTour();
+          this._ui.endTourUI();
+        }
+        this._selectedId = null;
+        this._ui.hideHoverCard();
+        this._hideRingTip();
+        this._ui.hideDetailPanel();
+        this._cameraCtrl.flyToSpacecraft(sc);
+        return;
+      }
+    }
     this._selectPlanet(id);
   }
 
   _selectPlanet(id) {
+    if (this._cameraCtrl.isTouring()) {
+      this._cameraCtrl.stopTour();
+      this._ui.endTourUI();
+    }
+
     if (id === 'sun') {
       if (this._hoveredId) {
         this._planetManager.unhighlightPlanet(this._hoveredId);
@@ -276,6 +283,7 @@ export class InteractionManager {
       this._ui.hideHoverCard();
       this._hideRingTip();
       this._ui.hideDetailPanel();
+      this._cameraCtrl.clearTrackedPlanet();
       this._cameraCtrl.moveTo(new THREE.Vector3(0, 14, 28), new THREE.Vector3(0, 0, 0), 2.5);
       return;
     }
@@ -284,7 +292,6 @@ export class InteractionManager {
     const hit     = targets.find(t => t.data.id === id);
     if (!hit) return;
 
-    // Unhighlight whichever planet was hovered (may differ from clicked one via search)
     if (this._hoveredId) {
       this._planetManager.unhighlightPlanet(this._hoveredId);
       this._hoveredId = null;
@@ -295,46 +302,48 @@ export class InteractionManager {
     this._hideRingTip();
     this._renderer.domElement.style.cursor = 'grab';
 
-    const worldPos = this._planetManager.getPlanetWorldPosition(id);
-    const size     = hit.data.size;
+    const pObj = this._planetManager.getPlanetObject(id);
+    if (!pObj) return;
 
-    // ── Camera: Saturn gets a special ring-viewing angle; others get generic ──
-    if (id === 'saturn') {
-      this._cameraCtrl.moveToSaturn(worldPos, size);
-    } else {
-      const camPos = worldPos.clone().add(
-        new THREE.Vector3(size * 3.5, size * 2.5, size * 8),
-      );
-      this._cameraCtrl.moveTo(camPos, worldPos.clone(), 2.4);
-    }
+    // Smoothly fly to the moving planet and lock real-time tracking
+    this._cameraCtrl.flyToPlanet(pObj, 'standard');
 
-    // ── Show detail panel ─────────────────────────────────────────────────────
+    // Show detail panel
     this._ui.showDetailPanel(hit.data, hit.order, {
       onOrbit: () => {
-        const wp = this._planetManager.getPlanetWorldPosition(id);
-        this._cameraCtrl.orbitAround(wp, size);
+        this._cameraCtrl.flyToPlanet(pObj, 'orbit');
       },
       onExplore: () => {
-        const wp = this._planetManager.getPlanetWorldPosition(id);
-        this._cameraCtrl.explorePlanet(wp, size);
+        this._cameraCtrl.flyToPlanet(pObj, 'explore');
       },
       onBack: () => {
         this._selectedId = null;
         this._hideRingTip();
+        this._cameraCtrl.clearTrackedPlanet();
         this._cameraCtrl.resetView();
         this._renderer.domElement.style.cursor = 'grab';
       },
     });
   }
 
-  // ─── Per-frame update ─────────────────────────────────────────────────────────
+  // ─── Per-Frame Update ─────────────────────────────────────────────────────────
 
-  /**
-   * Keep the hover card tracking the orbiting planet every frame.
-   * @param {number} _delta  Unused but kept for consistency
-   */
   update(_delta) {
-    if (!this._sceneReady || this._selectedId) return;
+    if (!this._sceneReady) return;
+
+    if (this._selectedId) {
+      if (this._selectedId === 'saturn' && this._pointerDirty) {
+        this._updateRingTooltip(this._lastClientX, this._lastClientY);
+        this._pointerDirty = false;
+      }
+      return;
+    }
+
+    // Synchronize raycast to animation frame instead of mouse-event frequency
+    if (this._pointerDirty) {
+      this._performRaycast();
+      this._pointerDirty = false;
+    }
 
     if (this._hoveredId) {
       const wp = this._planetManager.getPlanetWorldPosition(this._hoveredId);
