@@ -1,7 +1,8 @@
 {
-  "cleanUrls": true,
   "rewrites": [
+    { "source": "/solaris/(.*)", "destination": "/solaris/$1" },
     { "source": "/", "destination": "/solaris/index.html" },
-    { "source": "/(.*)", "destination": "/solaris/$1" }
+    { "source": "/((?!solaris/).*)", "destination": "/solaris/$1" }
   ]
 }
+

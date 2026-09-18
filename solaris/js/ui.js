@@ -181,6 +181,17 @@ export class UIManager {
     this._bindNASAControls();
     this._bindQualityToggle();
     this._bindKeyboardShortcuts();
+
+    // Safety watchdog: ensure user is NEVER permanently stuck on INITIALISING
+    setTimeout(() => {
+      if (this._enterBtn && this._enterBtn.disabled) {
+        this._enterLabel.textContent = 'ENTER';
+        this._enterBtn.disabled = false;
+        this._enterBtn.addEventListener('click', () => {
+          this._exitSplash();
+        }, { once: true });
+      }
+    }, 3500);
   }
 
   setSolarSystem(solarSystem) {
