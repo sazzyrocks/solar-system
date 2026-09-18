@@ -58,15 +58,15 @@ export class CameraController {
     const ctrl = new OrbitControls(this.camera, domElement);
 
     ctrl.enableDamping  = true;
-    ctrl.dampingFactor  = 0.06;
+    ctrl.dampingFactor  = 0.042; // Ultra-smooth inertia drift
     ctrl.minDistance    = 1.2;
-    ctrl.maxDistance    = 600;
+    ctrl.maxDistance    = 750;
     ctrl.minPolarAngle  = 0.05;
     ctrl.maxPolarAngle  = Math.PI - 0.05;
     ctrl.enablePan      = true;
-    ctrl.panSpeed       = 0.8;
-    ctrl.rotateSpeed    = 0.5;
-    ctrl.zoomSpeed      = 1.1;
+    ctrl.panSpeed       = 0.70;
+    ctrl.rotateSpeed    = 0.55;
+    ctrl.zoomSpeed      = 0.75; // Silky mouse-wheel zoom (no sudden steps)
     ctrl.target.set(0, 0, 0);
     ctrl.update();
     return ctrl;
@@ -83,7 +83,8 @@ export class CameraController {
       _desiredTgt.copy(_tempPos).add(this._targetOffset);
       _deltaVec.copy(_desiredTgt).sub(this.controls.target);
 
-      this.controls.target.copy(_desiredTgt);
+      // Smooth tracking interpolation to eliminate micro-jitter
+      this.controls.target.lerp(_desiredTgt, 0.14);
       this.camera.position.add(_deltaVec);
       this.controls.update();
       return;
@@ -95,7 +96,7 @@ export class CameraController {
       _desiredTgt.copy(_tempPos).add(this._targetOffset);
       _deltaVec.copy(_desiredTgt).sub(this.controls.target);
 
-      this.controls.target.copy(_desiredTgt);
+      this.controls.target.lerp(_desiredTgt, 0.14);
       this.camera.position.add(_deltaVec);
       this.controls.update();
       return;
@@ -149,8 +150,8 @@ export class CameraController {
 
     this._flightTween = gsap.to(progressObj, {
       t: 1.0,
-      duration: 2.2,
-      ease: 'power3.inOut',
+      duration: 2.5,
+      ease: 'power2.inOut',
       onUpdate: () => {
         planetObj.group.getWorldPosition(_tempPos);
 
@@ -198,8 +199,8 @@ export class CameraController {
 
     this._flightTween = gsap.to(progressObj, {
       t: 1.0,
-      duration: 2.2,
-      ease: 'power3.inOut',
+      duration: 2.5,
+      ease: 'power2.inOut',
       onUpdate: () => {
         spacecraft.group.getWorldPosition(_tempPos);
 

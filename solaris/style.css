@@ -973,23 +973,7 @@ ul { list-style: none; }
 /* ── Date block (left) ── */
 
 .tm-date-block {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  pointer-events: auto;
-}
-
-.tm-clock-icon {
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.tm-date {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  color: var(--text);
-  white-space: nowrap;
+  display: none !important;
 }
 
 /* ── Slider (center) ── */
