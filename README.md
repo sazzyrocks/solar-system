@@ -20,13 +20,14 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 ## ✨ Key Features
 
 - **🪐 Interactive 3D Solar System**: Real-time rendering of the Sun, 8 major planets, axial tilts, and planetary rings using Three.js with UnrealBloom post-processing glow.
-- **⏱️ Proportional Time Machine**: Speed up time ($1\times, 10\times, 100\times, 1,000\times$) where every planet moves proportionally to its real astronomical orbital period ($T \propto a^{3/2}$).
-- **🚀 Real Space Missions Tracker**: Explore historical and active missions per planet (Voyager 1/2, Mars Curiosity & Perseverance, Cassini, James Webb ST, etc.) with detailed mission dossiers.
-- **🛰️ Procedural Asteroid Belt**: GPU-accelerated field of thousands of rocky asteroids between Mars and Jupiter using `THREE.InstancedMesh`.
-- **🤖 SOLARIS AI Space Guide**: Integrated AI assistant that answers space questions and parses natural language travel commands (*"Take me to Mars"*, *"Fly to Saturn"*) to smoothly pilot the 3D camera.
+- **⏱️ Proportional Simulation Speed**: Speed up simulation ($1\times, 10\times, 100\times, 1,000\times$) with clean live controls where every planet moves proportionally to its real astronomical orbital period ($T \propto a^{3/2}$).
+- **🚀 Real 3D Spacecraft Missions**: Live 3D spacecraft tracking (Voyager 1/2, JWST, Cassini, Parker Solar Probe, Artemis II, New Horizons) with real trajectories and interactive dossiers.
+- **🏷️ NASA Eyes Floating 3D Labels**: Screen-projected 3D labels for planets, stars, and spacecraft that track camera perspective in real-time.
+- **🛰️ Asteroid Belt & Trojan Swarms**: GPU-accelerated field of thousands of rocky asteroids between Mars and Jupiter plus Jupiter L4 & L5 Trojan asteroid swarms using `THREE.InstancedMesh`.
+- **🤖 SOLARIS AI Space Guide**: Integrated AI assistant with an offline astronomical knowledge base that answers space questions and parses natural language travel commands (*"Take me to Mars"*, *"Fly to Saturn"*) to pilot the 3D camera.
+- **🎬 Buttery Smooth Cinematic Camera**: Zero-jitter lerp tracking, silky OrbitControls damping (`0.042`), smooth wheel zooming, and GSAP organic flights (`power2.inOut`) across all celestial bodies.
 - **🔎 Autocomplete Search**: Search indexing the Sun, all 8 planets, and notable moons (Titan, Europa, Ganymede, Triton, Enceladus).
-- **🔊 Procedural Ambient Sound**: Deep-space drone synthesized in real-time using the Web Audio API without needing external audio files.
-- **🎬 Smooth Cinematic Camera**: Interpolated GSAP flights between overview, orbital view, and surface exploration.
+- **🔊 Procedural Ambient Sound**: Deep-space drone synthesized in real-time using the Web Audio API without external audio files.
 
 ---
 
@@ -34,12 +35,14 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 
 | Action | Control |
 | :--- | :--- |
-| **Orbit / Rotate View** | Left Click + Drag |
-| **Zoom In / Out** | Mouse Wheel / Touch Pinch |
+| **Smooth Orbit / Rotate View** | Left Click + Drag (Inertial glide) |
+| **Smooth Zoom In / Out** | Mouse Wheel (Silky progressive steps) |
 | **Pan Camera** | Right Click + Drag |
+| **Quick Fly to Planet** | Press `1` to `8` keys or click any planet label |
 | **Select / Inspect Body** | Click on any planet or search in the top-right bar |
 | **Reset to Overview** | Press `ESC` or click "← SOLAR SYSTEM" |
-| **Time Travel** | Use the bottom slider to fast-forward orbits |
+| **Toggle Tour** | Click "CINEMATIC TOUR" for an automated planetary flyby |
+| **Simulation Speed** | Use the bottom scrubber slider to change orbital rate |
 | **Audio Toggle** | Click the speaker icon (bottom-left) |
 | **Ask Space Guide** | Click the AI icon (bottom-right) |
 
@@ -52,11 +55,21 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 - **Post-Processing**: `EffectComposer`, `UnrealBloomPass`, `OutputPass`
 - **Audio Engine**: Web Audio API (Multi-oscillator procedural synthesis)
 - **UI & Styling**: Vanilla HTML5 & CSS3 (Glassmorphism, CSS Grid, Custom Tokens)
-- **Data Layer**: Clean modular JSON (`planets.json`, `missions.json`)
+- **Data Layer**: Clean modular JSON (`planets.json`, `missions.json`) with offline fallbacks
 
 ---
 
-## 🚀 How to Run Locally
+## 🚀 Deployment (Vercel)
+
+This repository is pre-configured with optimized [`vercel.json`](./vercel.json) rewrites:
+
+1. Import this repository into **[Vercel](https://vercel.com/)**.
+2. Deploy directly — the custom rewrites automatically route traffic to the `/solaris/` application cleanly.
+3. Every push to `main` will trigger an automated build and instant redeploy.
+
+---
+
+## 💻 How to Run Locally
 
 ### 1. Clone the repo
 ```bash
@@ -100,6 +113,8 @@ solaris/
     ├── camera.js        # GSAP camera transitions & OrbitControls
     ├── planets.js       # Proportional orbital physics & planet meshes
     ├── asteroidBelt.js  # InstancedMesh procedural asteroid field
+    ├── missions3D.js    # Real-time 3D spacecraft models & orbital positions
+    ├── labels3D.js      # Screen-projected 3D floating labels
     ├── audio.js         # Web Audio procedural sound synthesizer
     ├── ui.js            # HUD, Search, Time Machine & Missions UI
     ├── interactions.js  # Raycasting, hover highlights & navigation
@@ -110,3 +125,4 @@ solaris/
 
 ## 📜 License
 Distributed under the MIT License. See `LICENSE` for details.
+
