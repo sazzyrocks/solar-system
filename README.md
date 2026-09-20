@@ -28,7 +28,22 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 - **🎬 Buttery Smooth Cinematic Camera**: Zero-jitter lerp tracking, silky OrbitControls damping (`0.042`), smooth wheel zooming, and GSAP organic flights (`power2.inOut`) across all celestial bodies.
 - **🔎 Autocomplete Search**: Search indexing the Sun, all 8 planets, and notable moons (Titan, Europa, Ganymede, Triton, Enceladus).
 - **🔊 Procedural Ambient Sound**: Deep-space drone synthesized in real-time using the Web Audio API without external audio files.
+- ## ✨ Features
 
+- 🌍 Interactive Solar System visualization
+- ☀️ Sun and planetary orbit simulation
+- 🪐 Interactive planet exploration
+- 🌌 Space-themed visual experience
+- 🎮 User-friendly controls
+- 📱 Responsive design
+
+## 🚀 Future Improvements
+
+- Add planet information cards
+- Add realistic planetary textures
+- Add animation speed controls
+- Add mobile touch controls
+- Add more detailed astronomical data
 ---
 
 ## 🕹️ Controls & Navigation
