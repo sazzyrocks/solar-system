@@ -11,6 +11,8 @@
  * Does NOT touch Three.js, camera, or raycasting.
  */
 
+import { PlanetLab } from './planetLab.js';
+
 // ─── Ordinal helper ───────────────────────────────────────────────────────────
 
 const ORDINALS = ['1st','2nd','3rd','4th','5th','6th','7th','8th'];
@@ -160,6 +162,9 @@ export class UIManager {
     this._drawerCloseBtn  = document.getElementById('drawer-close-btn');
     this._btnToggleLabels = document.getElementById('btn-toggle-labels');
     this._btnToggleTrajectories = document.getElementById('btn-toggle-trajectories');
+    this._btnTopDown      = document.getElementById('btn-top-down');
+    this._btnPlanetLab    = document.getElementById('btn-planet-compare');
+    this._btnDpCompare    = document.getElementById('btn-dp-compare');
 
     // ── Tour ──
     this._btnTour         = document.getElementById('btn-cinematic-tour');
@@ -172,6 +177,15 @@ export class UIManager {
     this._aiAssistant    = null;  // injected by app.js via setAIAssistant()
     this._missions3D     = null;  // injected by app.js via setMissions3D()
     this._labels3D       = null;  // injected by app.js via setLabels3D()
+
+    // ── Cosmic Lab & Planet Comparison Suite ──
+    this._planetLab = new PlanetLab({
+      onNavigate: (id) => {
+        if (this._onSelectPlanet) {
+          this._onSelectPlanet(id);
+        }
+      }
+    });
 
     this._bindSearch();
     this._bindTimeSlider();
@@ -317,10 +331,21 @@ export class UIManager {
     // Wire action buttons (clone to kill old listeners)
     const orbitClone   = this._btnOrbit.cloneNode(true);
     const exploreClone = this._btnExplore.cloneNode(true);
+    const compareClone = this._btnDpCompare ? this._btnDpCompare.cloneNode(true) : null;
+
     this._btnOrbit.replaceWith(orbitClone);
     this._btnExplore.replaceWith(exploreClone);
     this._btnOrbit   = orbitClone;
     this._btnExplore = exploreClone;
+
+    if (this._btnDpCompare && compareClone) {
+      this._btnDpCompare.replaceWith(compareClone);
+      this._btnDpCompare = compareClone;
+      this._btnDpCompare.addEventListener('click', () => {
+        this._planetLab.open(data.id, 'earth');
+      });
+    }
+
     this._btnOrbit.addEventListener('click',   () => callbacks.onOrbit?.(),   { once: true });
     this._btnExplore.addEventListener('click', () => callbacks.onExplore?.(), { once: true });
 
@@ -674,6 +699,19 @@ export class UIManager {
       });
     }
 
+    if (this._btnTopDown) {
+      this._btnTopDown.addEventListener('click', () => {
+        const isTop = this._cameraCtrl.toggleTopDownOverview();
+        this._btnTopDown.classList.toggle('active', isTop);
+      });
+    }
+
+    if (this._btnPlanetLab) {
+      this._btnPlanetLab.addEventListener('click', () => {
+        this._planetLab.toggle();
+      });
+    }
+
     if (this._tmLiveBtn && this._tmSlider) {
       this._tmLiveBtn.addEventListener('click', () => {
         // Reset slider to step 1 (1x Real Rate)
@@ -725,6 +763,15 @@ export class UIManager {
         if (this._onSelectPlanet) {
           this._onSelectPlanet('sun');
         }
+      } else if (e.key.toLowerCase() === 'c') {
+        this._planetLab.toggle();
+      } else if (e.key.toLowerCase() === 't' || e.key.toLowerCase() === 'o') {
+        const isTop = this._cameraCtrl.toggleTopDownOverview();
+        if (this._btnTopDown) this._btnTopDown.classList.toggle('active', isTop);
+      } else if (e.key === 'Escape') {
+        if (this._planetLab.isOpen()) {
+          this._planetLab.close();
+        }
       } else if (e.key.toLowerCase() === 'f') {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(() => {});
@@ -733,6 +780,10 @@ export class UIManager {
         }
       }
     });
+  }
+
+  openPlanetLab(bodyIdA, bodyIdB) {
+    this._planetLab.open(bodyIdA, bodyIdB);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

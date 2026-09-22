@@ -185,6 +185,15 @@
         </svg>
         EXPLORE
       </button>
+      <button id="btn-dp-compare" class="dp-action dp-action--compare" aria-label="Compare planet in Cosmic Lab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" width="14" height="14" aria-hidden="true">
+          <circle cx="8" cy="12" r="4"/>
+          <circle cx="16" cy="12" r="3"/>
+          <line x1="8" y1="12" x2="16" y2="12" stroke-dasharray="1 2"/>
+        </svg>
+        COMPARE
+      </button>
     </div>
 
   </section><!-- /detail-panel -->
@@ -346,6 +355,16 @@
         <span>TRAJECTORIES</span>
       </button>
 
+      <button id="btn-top-down" class="hud-pill-btn" aria-label="Toggle Top-Down Orrery View" title="Top-down orbital view (Press T)">
+        <span class="pill-dot blue">●</span>
+        <span>ORRERY</span>
+      </button>
+
+      <button id="btn-planet-compare" class="hud-pill-btn" aria-label="Open Cosmic Lab & Planet Comparison" title="Planet Comparison & Astronaut Calculator (Press C)">
+        <span class="pill-dot gold">●</span>
+        <span>PLANET LAB</span>
+      </button>
+
       <button id="btn-quality-toggle" class="hud-pill-btn" aria-label="Toggle Graphics Quality" title="Toggle Quality: Ultra, High, Balanced, Performance">
         <span class="pill-dot gold">●</span>
         <span id="quality-btn-label">HIGH</span>
@@ -428,6 +447,10 @@
     <!-- Right: navigation controls hint -->
     <div class="tm-hints" aria-hidden="true">
       <span class="tm-kbd" title="Press 1-8 keys to fly to planets">1–8 PLANETS</span>
+      <span class="tm-dot">·</span>
+      <span class="tm-kbd" title="Press C to open Planet Lab">C LAB</span>
+      <span class="tm-dot">·</span>
+      <span class="tm-kbd" title="Press T to toggle Top-Down Orrery">T ORRERY</span>
       <span class="tm-dot">·</span>
       <span class="tm-kbd" title="Press Space to pause or play">SPACE PAUSE</span>
       <span class="tm-dot">·</span>
