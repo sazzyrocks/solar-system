@@ -20,6 +20,10 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 ## ✨ Key Features
 
 - **🪐 Interactive 3D Solar System**: Real-time rendering of the Sun, 8 major planets, axial tilts, and planetary rings using Three.js with UnrealBloom post-processing glow.
+- **🧪 Cosmic Exploration Lab**: Side-by-side planetary comparison tool with proportional visual spheres, metric showdowns, and live delta calculations.
+- **🧑‍🚀 Astronaut Biometrics Calculator**: Calculate your exact physical surface weight and local solar age across all planets, Moon, Pluto, and Sun with interactive unit toggles (kg/lbs).
+- **🛰️ Interplanetary Transit Matrix**: Plan expedition flights with Hohmann transfer durations, next-gen ion propulsion times, speed-of-light radio latencies, and solar flux ratings.
+- **🧭 Top-Down Concentric Orrery View**: Single-click camera transition (`T` key or `ORRERY` button) providing a geometric orbital view of all concentric planetary orbits.
 - **⏱️ Proportional Simulation Speed**: Speed up simulation ($1\times, 10\times, 100\times, 1,000\times$) with clean live controls where every planet moves proportionally to its real astronomical orbital period ($T \propto a^{3/2}$).
 - **🚀 Real 3D Spacecraft Missions**: Live 3D spacecraft tracking (Voyager 1/2, JWST, Cassini, Parker Solar Probe, Artemis II, New Horizons) with real trajectories and interactive dossiers.
 - **🏷️ NASA Eyes Floating 3D Labels**: Screen-projected 3D labels for planets, stars, and spacecraft that track camera perspective in real-time.
@@ -54,6 +58,11 @@ Textbooks and 2D diagrams never quite captured the sheer scale and beauty of our
 | **Smooth Zoom In / Out** | Mouse Wheel (Silky progressive steps) |
 | **Pan Camera** | Right Click + Drag |
 | **Quick Fly to Planet** | Press `1` to `8` keys or click any planet label |
+| **Fly to Sun** | Press `0` or `S` |
+| **Cosmic Lab / Comparison** | Press `C` or click `PLANET LAB` in HUD / Detail Panel |
+| **Top-Down Orrery View** | Press `T` or `O` or click `ORRERY` in HUD |
+| **Pause / Resume Orbit** | Press `SPACEBAR` |
+| **Toggle Fullscreen** | Press `F` |
 | **Select / Inspect Body** | Click on any planet or search in the top-right bar |
 | **Reset to Overview** | Press `ESC` or click "← SOLAR SYSTEM" |
 | **Toggle Tour** | Click "CINEMATIC TOUR" for an automated planetary flyby |
