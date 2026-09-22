@@ -46,6 +46,9 @@ export class CameraController {
     this._isTouring       = false;
     this._tourTimeout     = null;
 
+    // Top-Down Orrery mode
+    this._isTopDown       = false;
+
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
@@ -119,6 +122,7 @@ export class CameraController {
     }
 
     this._trackedPlanet   = planetObj;
+    this._isTopDown       = false;
     this._isAnimating     = true;
     this.controls.enabled = false;
 
@@ -186,6 +190,7 @@ export class CameraController {
 
     this._trackedPlanet     = null;
     this._trackedSpacecraft = spacecraft;
+    this._isTopDown         = false;
     this._isAnimating       = true;
     this.controls.enabled   = false;
 
@@ -291,11 +296,42 @@ export class CameraController {
   resetView() {
     this.stopTour();
     this.clearTrackedPlanet();
+    this._isTopDown = false;
     this.moveTo(
       new THREE.Vector3(0, 95, 195),
       new THREE.Vector3(0, 0, 0),
       2.2,
     );
+  }
+
+  // ─── Top-Down Orrery View (Concentric Orbital Perspective) ───────────────────
+
+  flyToTopDownOverview(onComplete) {
+    this.stopTour();
+    this.clearTrackedPlanet();
+    this._trackedSpacecraft = null;
+    this._isTopDown = true;
+    this.moveTo(
+      new THREE.Vector3(0, 360, 0.001),
+      new THREE.Vector3(0, 0, 0),
+      2.4,
+      'power2.inOut',
+      onComplete
+    );
+  }
+
+  toggleTopDownOverview(onComplete) {
+    if (this._isTopDown) {
+      this.resetView();
+      return false;
+    } else {
+      this.flyToTopDownOverview(onComplete);
+      return true;
+    }
+  }
+
+  isTopDown() {
+    return !!this._isTopDown;
   }
 
   // ─── Automated Cinematic Solar System Tour ───────────────────────────────────
